@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8 />
+<title>Roadkill Map</title>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script src='https://api.mapbox.com/mapbox.js/v2.2.2/mapbox.js'></script>
+<link href='https://api.mapbox.com/mapbox.js/v2.2.2/mapbox.css' rel='stylesheet' />
+<style>
+  body { margin:10; padding:0; }
+  #map { width:100%;height:630px;}
+
+.map-legend {
+  width: 140px;
+}
+
+.map-legend .swatch {
+  width:20px;
+  height:20px;
+  float:left;
+  margin-right:10px;
+  }
+.leaflet-popup-close-button {
+  display: none;
+  }
+.leaflet-popup-content-wrapper {
+  pointer-events: none;
+  }
+
+  .nolist {
+    list-style-type: none;
+  }
+</style>
+</head>
+<body>
+<h3>Deer Deaths on Vermont Roads, 2011-2014</h3>
+<p>Data sorted by <a href="http://www.vtfishandwildlife.com/hunt/find_a_place_to_hunt/wildlife_management_units" target="_blank">wildlife management unit</a>, as defined by Vermont Fish and Wildlife.</p>
+<div id='map'></div>
+
+<script src='roadkill.js'></script>
+
+<script>
+L.mapbox.accessToken = 'pk.eyJ1Ijoic2V2ZW5kYXlzIiwiYSI6IlNoa3paVkUifQ.LFZ6EaHWsMT63Oi51_w_xQ';
+var map = L.mapbox.map('map', 'mapbox.streets', {
+  zoomControl: false
+})
+    .setView([43.849732, -72.434849], 8)
+
+map.doubleClickZoom.disable();
+
+ var popup = new L.Popup({ autoPan: false });
+
+  // statesData comes from the 'us-states.js' script included above
+  var roadkillLayer = L.geoJson(roadkill,  {
+      style: getStyle,
+      onEachFeature: onEachFeature
+  }).addTo(map);
+
+  function getStyle(feature) {
+      return {
+          weight: 2,
+          opacity: 0.1,
+          color: 'black',
+          fillOpacity: 0.7,
+          fillColor: getColor(feature.properties.total)
+      };
+  }
+
+  // get color depending on population density value
+  function getColor(d) {
+      return d > 30 ? '#8c2d04' :
+          d > 20  ? '#ec7014' :
+          d > 10   ? '#fec44f' :
+          '#ffffe5';
+  }
+
+  function onEachFeature(feature, layer) {
+      layer.on({
+          mousemove: mousemove,
+          mouseout: mouseout
+      });
+  }
+
+  var closeTooltip;
+
+  function mousemove(e) {
+      var layer = e.target;
+
+      popup.setLatLng(e.latlng);
+      popup.setContent('<div class="marker-title"><h3>Unit ' + layer.feature.properties.UNIT + '</h3></div>' +
+          '<b>2011</b>: ' + layer.feature.properties.y2011 + '<br/>' +
+          '<b>2012</b>: ' + layer.feature.properties.y2012 + '<br/>' +
+          '<b>2013</b>: ' + layer.feature.properties.y2013 + '<br/>' +
+          '<b>2014</b>: ' + layer.feature.properties.y2014 + '<br/><hr>' +
+          '<b>Total</b>: ' + layer.feature.properties.total );
+
+      if (!popup._map) popup.openOn(map);
+      window.clearTimeout(closeTooltip);
+
+      // highlight feature
+      layer.setStyle({
+          weight: 3,
+          opacity: 0.3,
+          fillOpacity: 0.9
+      });
+
+      if (!L.Browser.ie && !L.Browser.opera) {
+          layer.bringToFront();
+      }
+  }
+
+  function mouseout(e) {
+      roadkillLayer.resetStyle(e.target);
+      closeTooltip = window.setTimeout(function() {
+          map.closePopup();
+      }, 100);
+  }
+
+
+  map.legendControl.addLegend(getLegendHTML());
+
+  function getLegendHTML() {
+    var grades = [0, 10, 20, 30],
+    labels = [],
+    from, to;
+
+    for (var i = 0; i < grades.length; i++) {
+      from = grades[i];
+      to = grades[i + 1];
+
+      labels.push(
+        '<li class="nolist"><span class="swatch" style="background:' + getColor(from + 1) + '"></span> ' +
+        from + (to ? '&ndash;' + to : '+')) + '</li>';
+    }
+
+    return '<span><b>Deer deaths on Vermont roads, 2011-2014</b></span><ul>' + labels.join('') + '</ul>';
+  }
+
+</script>
+
+<p>Data: <a href="http://www.vtfishandwildlife.com/">Vermont Fish and Wildlife</a></p>
+<p><i>Note: These data reflect roadkill incidents that Vermont Fish and Wildlife wardens responded to between 2011-2014. The agency does not respond to all roadkill incidents in the state, and does not remove roadkill from Vermont interstates. Other incidents along local and state roads go unreported.</i></p>
+
+
+<script type="text/javascript" src="http://www.sevendaysvt.com/general/multimedia/jslibs/pym.min.js"></script>
+  <script>var pymChild = new pym.Child();</script>
+
+</body>
+</html>
